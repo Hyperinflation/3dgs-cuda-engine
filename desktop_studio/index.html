@@ -726,12 +726,12 @@
                 gl_Position = pos;
 
                 float dist = max(pos.w, 0.2);
-                float projectedSize = (aScale * uSizeScale * uViewportHeight * 0.95) / dist;
+                float projectedSize = (aScale * uSizeScale * uViewportHeight * 0.65) / dist;
                 
                 if (uMode > 0.5) {
-                    gl_PointSize = clamp(projectedSize * 0.4, 2.0, 10.0);
+                    gl_PointSize = clamp(projectedSize * 0.4, 2.0, 8.0);
                 } else {
-                    gl_PointSize = clamp(projectedSize, 2.0, 48.0);
+                    gl_PointSize = clamp(projectedSize, 1.0, 22.0);
                 }
             }
         `;
@@ -748,7 +748,7 @@
                 float distSq = dot(coord, coord);
                 if (distSq > 0.25) discard;
                 
-                float alpha = (1.0 - distSq * 4.0) * vColor.a * uOpacityBoost;
+                float alpha = exp(-distSq * 8.0) * vColor.a * uOpacityBoost;
                 if (uMode > 0.5) alpha = 1.0;
                 vec3 rgb = vColor.rgb * uExposure;
                 gl_FragColor = vec4(rgb, alpha);
@@ -770,8 +770,8 @@
 
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
+        gl.depthMask(false);
+        gl.disable(gl.DEPTH_TEST);
 
         const aPosition = gl.getAttribLocation(program, "aPosition");
         const aColor = gl.getAttribLocation(program, "aColor");
@@ -845,12 +845,12 @@
                     const sx = Math.abs(dataView.getFloat32(offset + 12, true));
                     const sy = Math.abs(dataView.getFloat32(offset + 16, true));
                     const sz = Math.abs(dataView.getFloat32(offset + 20, true));
-                    scales[i] = Math.max(0.02, Math.min((sx + sy + sz) / 3.0, 0.45));
+                    scales[i] = Math.max(0.004, Math.min((sx + sy + sz) / 3.0, 0.08));
 
                     colors[i * 4 + 0] = dataView.getUint8(offset + 24) / 255.0;
                     colors[i * 4 + 1] = dataView.getUint8(offset + 25) / 255.0;
                     colors[i * 4 + 2] = dataView.getUint8(offset + 26) / 255.0;
-                    colors[i * 4 + 3] = dataView.getUint8(offset + 27) / 255.0 || 0.8;
+                    colors[i * 4 + 3] = (dataView.getUint8(offset + 27) / 255.0) || 0.85;
                 }
 
                 gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
