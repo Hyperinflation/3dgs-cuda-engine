@@ -1,0 +1,16 @@
+{
+  "name": "3D Gaussian Splatting Mobile Viewer",
+  "short_name": "3DGS Viewer",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0e17",
+  "theme_color": "#0a0e17",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%233b82f6'/><polygon points='50,15 85,75 15,75' fill='%2360a5fa'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

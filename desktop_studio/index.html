@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Postshot Studio Pro - 3D Gaussian Splatting & Mimari Görselleştirme</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Warm Cream / Coffee / White Architectural Theme */
+            --bg-canvas: #f5f1ea;
+            --bg-viewport: #ebe5db;
+            --panel-bg: #ffffff;
+            --panel-sub: #faf7f2;
+            --panel-header: #211a14;
+            --panel-border: rgba(140, 115, 95, 0.22);
+            --panel-border-focus: #b46938;
+            
+            --coffee-dark: #1e1713;
+            --coffee-mid: #2f231b;
+            --coffee-warm: #4a3b30;
+            --caramel: #b46938;
+            --caramel-light: #d88a56;
+            --caramel-glow: rgba(180, 105, 56, 0.25);
+            --gold-accent: #c4975d;
+            
+            --text-primary: #1e1713;
+            --text-secondary: #5c4e43;
+            --text-muted: #8c7a6e;
+            --text-light: #fbf9f5;
+            
+            --success: #15803d;
+            --success-bg: #f0fdf4;
+            --badge-bg: rgba(180, 105, 56, 0.12);
+            --badge-text: #964f22;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Luxury Coffee Bar */
+        .topbar {
+            height: 54px;
+            background: var(--coffee-dark);
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            border-bottom: 2px solid var(--caramel);
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(30, 23, 19, 0.35);
+        }
+
+        .brand-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, var(--caramel-light) 0%, var(--caramel) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14px;
+            color: #fff;
+            box-shadow: 0 2px 8px var(--caramel-glow);
+        }
+
+        .brand-text h1 {
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: -0.2px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .postshot-tag {
+            background: rgba(196, 151, 93, 0.25);
+            border: 1px solid var(--gold-accent);
+            color: #e8cba4;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .top-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-top {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--text-light);
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-top:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #fff;
+        }
+
+        .btn-caramel {
+            background: linear-gradient(135deg, var(--caramel-light) 0%, var(--caramel) 100%);
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 14px var(--caramel-glow);
+        }
+
+        .btn-caramel:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--caramel-glow);
+        }
+
+        /* Main Studio Layout */
+        .studio-workspace {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            background: var(--bg-canvas);
+        }
+
+        /* Left Inspector (Project & Training) */
+        .sidebar-left {
+            width: 320px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: 2px 0 12px rgba(140, 115, 95, 0.06);
+        }
+
+        /* Center Viewport */
+        .viewport-center {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #f0ebe2 0%, #e2d9cd 100%);
+            overflow: hidden;
+            display: flex;
+        }
+
+        #studio-canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            cursor: grab;
+        }
+
+        #studio-canvas:active {
+            cursor: grabbing;
+        }
+
+        /* Right Inspector (Render & Shading) */
+        .sidebar-right {
+            width: 310px;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            box-shadow: -2px 0 12px rgba(140, 115, 95, 0.06);
+        }
+
+        /* Panel Components */
+        .panel-card {
+            padding: 16px;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .panel-header-title {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            color: var(--coffee-warm);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .badge-pill {
+            background: var(--badge-bg);
+            color: var(--badge-text);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .stat-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .stat-box {
+            background: var(--panel-sub);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .stat-box .lbl {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .stat-box .val {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--coffee-dark);
+            margin-top: 2px;
+        }
+
+        /* Viewport Floating Postshot HUD */
+        .postshot-toolbar {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .mode-btn {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--panel-border);
+            color: var(--text-secondary);
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(90, 70, 50, 0.08);
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active, .mode-btn:hover {
+            background: var(--coffee-mid);
+            color: #fff;
+            border-color: var(--coffee-mid);
+            box-shadow: 0 6px 16px rgba(47, 35, 27, 0.2);
+        }
+
+        .viewport-status-hud {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .hud-chip {
+            background: rgba(33, 26, 20, 0.88);
+            backdrop-filter: blur(12px);
+            color: #f7f3ee;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hud-chip span {
+            color: #4ade80;
+            font-weight: 800;
+        }
+
+        /* Controls */
+        .control-row {
+            margin-bottom: 14px;
+        }
+
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label-group {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .control-label-group span:last-child {
+            color: var(--caramel);
+            font-weight: 800;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #e2d9cd;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--caramel);
+            cursor: pointer;
+            box-shadow: 0 2px 8px var(--caramel-glow);
+            transition: transform 0.1s;
+        }
+
+        .btn-grid-preset {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn-preset {
+            background: var(--panel-sub);
+            border: 1px solid var(--panel-border);
+            color: var(--text-secondary);
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-preset:hover, .btn-preset.active {
+            background: var(--caramel);
+            color: #fff;
+            border-color: var(--caramel);
+            box-shadow: 0 3px 10px var(--caramel-glow);
+        }
+
+        /* Training HUD Components */
+        .progress-bar-container {
+            width: 100%;
+            height: 8px;
+            background: #e8ded2;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--caramel-light), var(--caramel));
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .training-log-box {
+            background: #1e1713;
+            color: #a7f3d0;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            height: 140px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.4;
+            margin-top: 10px;
+            border: 1px solid var(--panel-border);
+        }
+
+        /* Bottom Luxury Footer */
+        .studio-footer {
+            height: 32px;
+            background: #faf7f2;
+            border-top: 1px solid var(--panel-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .footer-status {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Luxury Coffee Bar -->
+    <header class="topbar">
+        <div class="brand-group">
+            <div class="brand-icon">P</div>
+            <div class="brand-text">
+                <h1>Postshot Studio <span class="postshot-tag">Mimari 3DGS Engine</span></h1>
+            </div>
+        </div>
+
+        <div class="top-toolbar">
+            <button class="btn-top btn-caramel" onclick="mirrorToPhone()">
+                📱 1-Tıkla Telefona Yansıt (ADB)
+            </button>
+            <button class="btn-top" onclick="exportSplat()">
+                💾 Dışa Aktar (.splat)
+            </button>
+        </div>
+    </header>
+
+    <!-- Studio Main Workspace -->
+    <div class="studio-workspace">
+
+        <!-- Left Inspector: Dataset & Training Engine -->
+        <aside class="sidebar-left">
+            <div class="panel-card">
+                <div class="panel-header-title">
+                    <span>Drone Rekonstrüksiyonu</span>
+                    <span class="badge-pill">COLMAP SfM</span>
+                </div>
+                <div class="stat-columns">
+                    <div class="stat-box">
+                        <div class="lbl">Kamera Pozu</div>
+                        <div class="val" id="lbl-cams">266 Kare</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="lbl">Gaussian Splat</div>
+                        <div class="val" id="lbl-splats">296,617 Pts</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Postshot Training Card -->
+            <div class="panel-card">
+                <div class="panel-header-title">
+                    <span>Postshot CUDA Eğitimi</span>
+                    <span class="badge-pill" style="background:#dcfce7; color:#15803d;">RTX 3090</span>
+                </div>
+
+                <div class="control-row">
+                    <div class="control-label-group">
+                        <span>Hedef İterasyon:</span>
+                        <span id="train-iter-lbl">30,000 Adım</span>
+                    </div>
+                    <input type="range" min="5000" max="60000" step="5000" value="30000" id="train-iter-slider" oninput="document.getElementById('train-iter-lbl').innerText = parseInt(this.value).toLocaleString() + ' Adım'">
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button class="btn-top btn-caramel" id="btn-start-train" style="flex: 1; justify-content: center;" onclick="triggerTraining()">
+                        🚀 CUDA Eğitimi Başlat
+                    </button>
+                    <button class="btn-top" id="btn-stop-train" style="color: #ef4444; border-color: #fca5a5; display:none;" onclick="cancelTraining()">
+                        ⏹ Durdur
+                    </button>
+                </div>
+
+                <!-- Training Live Status & Progress -->
+                <div id="training-progress-box" style="margin-top: 14px; display: none;">
+                    <div class="control-label-group">
+                        <span id="train-status-text">Eğitim İlerliyor...</span>
+                        <span id="train-pct-text">0%</span>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="train-bar-fill"></div>
+                    </div>
+                </div>
+
+                <div class="training-log-box" id="train-log-box">[*] Postshot Studio Pro hazır.
+[*] NVIDIA RTX 3090 (24GB VRAM) bağlandı.
+[*] 266 Kamera pozu ve COLMAP veri kümesi yüklendi.
+[*] 'CUDA Eğitimi Başlat' butonuna basarak fotogerçekçi eğitimi başlatabilirsiniz.</div>
+            </div>
+        </aside>
+
+        <!-- Center Viewport -->
+        <main class="viewport-center">
+            <!-- Postshot Render Modes HUD -->
+            <div class="postshot-toolbar">
+                <button class="mode-btn active" id="btn-mode-splat" onclick="setRenderMode('splat')">✨ Fotogerçekçi 3DGS</button>
+                <button class="mode-btn" id="btn-mode-points" onclick="setRenderMode('points')">📐 Nokta Bulutu</button>
+            </div>
+
+            <div class="viewport-status-hud">
+                <div class="hud-chip">FPS: <span id="vp-fps">60</span></div>
+                <div class="hud-chip">Motor: <span>Postshot CUDA GPU</span></div>
+                <div class="hud-chip">Merkez: <span>[0.99, 1.41, 1.61]</span></div>
+            </div>
+
+            <canvas id="studio-canvas"></canvas>
+        </main>
+
+        <!-- Right Inspector: Postshot Shading & Camera Controls -->
+        <aside class="sidebar-right">
+            <div class="panel-card">
+                <div class="panel-header-title">Kamera Önayarları</div>
+                <div class="btn-grid-preset">
+                    <button class="btn-preset active" onclick="setPreset('orbit')">🛸 360° Vitrin</button>
+                    <button class="btn-preset" onclick="setPreset('facade')">🏢 Ön Cephe</button>
+                    <button class="btn-preset" onclick="setPreset('top')">📐 Kuşbakışı</button>
+                    <button class="btn-preset" onclick="setPreset('close')">🔍 Yakın Detay</button>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-header-title">Postshot Hacimsel Render</div>
+
+                <div class="control-row">
+                    <div class="control-label-group">
+                        <span>Splat Boyutu (Doluluk):</span>
+                        <span id="val-size">1.3x</span>
+                    </div>
+                    <input type="range" min="0.4" max="3.5" step="0.1" value="1.3" oninput="updateSplatScale(this.value)">
+                </div>
+
+                <div class="control-row">
+                    <div class="control-label-group">
+                        <span>Opaklık Güçlendirme:</span>
+                        <span id="val-opacity">1.2x</span>
+                    </div>
+                    <input type="range" min="0.8" max="2.5" step="0.1" value="1.2" oninput="updateOpacity(this.value)">
+                </div>
+
+                <div class="control-row">
+                    <div class="control-label-group">
+                        <span>Pozlama / Işık Tonu:</span>
+                        <span id="val-exposure">1.1x</span>
+                    </div>
+                    <input type="range" min="0.6" max="2.0" step="0.05" value="1.1" oninput="updateExposure(this.value)">
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-header-title">Model Bilgileri</div>
+                <div class="stat-columns">
+                    <div class="stat-box">
+                        <div class="lbl">Boyut</div>
+                        <div class="val">9.49 MB</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="lbl">Format</div>
+                        <div class="val">32-byte .splat</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Bottom Luxury Footer -->
+    <footer class="studio-footer">
+        <div class="footer-status">
+            <span><span class="status-dot"></span> Postshot Motoru: Aktif</span>
+            <span>NVIDIA GeForce RTX 3090 • 24.0 GB VRAM</span>
+        </div>
+        <div>
+            <span>Bağlı Cihaz: Samsung Galaxy S24 FE (ADB Aktif)</span>
+        </div>
+    </footer>
+
+    <!-- Viewport & Studio Script -->
+    <script>
+        const { ipcRenderer } = require('electron');
+        const fs = require('fs');
+        const path = require('path');
+
+        const canvas = document.getElementById('studio-canvas');
+        const gl = canvas.getContext('webgl2', { antialias: false, powerPreference: "high-performance" });
+
+        const sceneCenter = [0.99, 1.41, 1.61];
+        let targetLookAt = [...sceneCenter];
+        
+        let autoSpin = true;
+        let spinAngle = 0.8;
+        let pitchAngle = 0.35;
+        let cameraRadius = 8.2;
+        let pointSizeMultiplier = 1.3;
+        let opacityMultiplier = 1.2;
+        let exposure = 1.1;
+        let renderMode = 'splat';
+
+        let isDragging = false;
+        let lastX = 0, lastY = 0;
+        let numSplatPoints = 0;
+
+        let frameCount = 0;
+        let lastTime = performance.now();
+        const fpsElem = document.getElementById('vp-fps');
+
+        function resize() {
+            canvas.width = canvas.clientWidth * window.devicePixelRatio;
+            canvas.height = canvas.clientHeight * window.devicePixelRatio;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        window.addEventListener('resize', resize);
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastX = e.clientX;
+            lastY = e.clientY;
+            autoSpin = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - lastX;
+            const dy = e.clientY - lastY;
+            spinAngle -= dx * 0.005;
+            pitchAngle += dy * 0.005;
+            pitchAngle = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, pitchAngle));
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            cameraRadius += e.deltaY * 0.005;
+            cameraRadius = Math.max(1.5, Math.min(cameraRadius, 25.0));
+        });
+
+        const vsSource = `
+            attribute vec3 aPosition;
+            attribute vec4 aColor;
+            attribute float aScale;
+
+            uniform mat4 uMVP;
+            uniform float uSizeScale;
+            uniform float uViewportHeight;
+            uniform float uMode;
+
+            varying vec4 vColor;
+
+            void main() {
+                vColor = aColor;
+                vec4 pos = uMVP * vec4(aPosition, 1.0);
+                gl_Position = pos;
+
+                float dist = max(pos.w, 0.2);
+                float projectedSize = (aScale * uSizeScale * uViewportHeight * 0.95) / dist;
+                
+                if (uMode > 0.5) {
+                    gl_PointSize = clamp(projectedSize * 0.4, 2.0, 10.0);
+                } else {
+                    gl_PointSize = clamp(projectedSize, 2.0, 48.0);
+                }
+            }
+        `;
+
+        const fsSource = `
+            precision mediump float;
+            varying vec4 vColor;
+            uniform float uOpacityBoost;
+            uniform float uExposure;
+            uniform float uMode;
+
+            void main() {
+                vec2 coord = gl_PointCoord - vec2(0.5);
+                float distSq = dot(coord, coord);
+                if (distSq > 0.25) discard;
+                
+                float alpha = (1.0 - distSq * 4.0) * vColor.a * uOpacityBoost;
+                if (uMode > 0.5) alpha = 1.0;
+                vec3 rgb = vColor.rgb * uExposure;
+                gl_FragColor = vec4(rgb, alpha);
+            }
+        `;
+
+        function compileShader(gl, type, src) {
+            const s = gl.createShader(type);
+            gl.shaderSource(s, src);
+            gl.compileShader(s);
+            return s;
+        }
+
+        const program = gl.createProgram();
+        gl.attachShader(program, compileShader(gl, gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(program, compileShader(gl, gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(program);
+        gl.useProgram(program);
+
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+
+        const aPosition = gl.getAttribLocation(program, "aPosition");
+        const aColor = gl.getAttribLocation(program, "aColor");
+        const aScale = gl.getAttribLocation(program, "aScale");
+        const uMVP = gl.getUniformLocation(program, "uMVP");
+        const uSizeScale = gl.getUniformLocation(program, "uSizeScale");
+        const uViewportHeight = gl.getUniformLocation(program, "uViewportHeight");
+        const uOpacityBoost = gl.getUniformLocation(program, "uOpacityBoost");
+        const uExposure = gl.getUniformLocation(program, "uExposure");
+        const uMode = gl.getUniformLocation(program, "uMode");
+
+        const posBuffer = gl.createBuffer();
+        const colBuffer = gl.createBuffer();
+        const scaleBuffer = gl.createBuffer();
+
+        function mat4Perspective(out, fov, aspect, near, far) {
+            const f = 1.0 / Math.tan(fov / 2);
+            out[0] = f / aspect; out[1] = 0; out[2] = 0; out[3] = 0;
+            out[4] = 0; out[5] = f; out[6] = 0; out[7] = 0;
+            out[8] = 0; out[9] = 0; out[10] = (far + near) / (near - far); out[11] = -1;
+            out[12] = 0; out[13] = 0; out[14] = (2 * far * near) / (near - far); out[15] = 0;
+        }
+
+        function mat4LookAt(out, eye, center, up) {
+            let z0 = eye[0] - center[0], z1 = eye[1] - center[1], z2 = eye[2] - center[2];
+            let len = Math.hypot(z0, z1, z2) || 1;
+            z0 /= len; z1 /= len; z2 /= len;
+            let x0 = up[1] * z2 - up[2] * z1, x1 = up[2] * z0 - up[0] * z2, x2 = up[0] * z1 - up[1] * z0;
+            len = Math.hypot(x0, x1, x2) || 1;
+            x0 /= len; x1 /= len; x2 /= len;
+            let y0 = z1 * x2 - z2 * x1, y1 = z2 * x0 - z0 * x2, y2 = z0 * x1 - z1 * x0;
+            out[0] = x0; out[1] = y0; out[2] = z0; out[3] = 0;
+            out[4] = x1; out[5] = y1; out[6] = z1; out[7] = 0;
+            out[8] = x2; out[9] = y2; out[10] = z2; out[11] = 0;
+            out[12] = -(x0 * eye[0] + x1 * eye[1] + x2 * eye[2]);
+            out[13] = -(y0 * eye[0] + y1 * eye[1] + y2 * eye[2]);
+            out[14] = -(z0 * eye[0] + z1 * eye[1] + z2 * eye[2]);
+            out[15] = 1;
+        }
+
+        function mat4Multiply(out, a, b) {
+            for (let i = 0; i < 4; i++) {
+                const ai0 = a[i], ai1 = a[i+4], ai2 = a[i+8], ai3 = a[i+12];
+                out[i]    = ai0 * b[0] + ai1 * b[1] + ai2 * b[2] + ai3 * b[3];
+                out[i+4]  = ai0 * b[4] + ai1 * b[5] + ai2 * b[6] + ai3 * b[7];
+                out[i+8]  = ai0 * b[8] + ai1 * b[9] + ai2 * b[10] + ai3 * b[11];
+                out[i+12] = ai0 * b[12] + ai1 * b[13] + ai2 * b[14] + ai3 * b[15];
+            }
+        }
+
+        function loadSplatBinary() {
+            try {
+                const modelPath = path.join(__dirname, '..', 'output_3dgs', 'web_viewer', 'model.splat');
+                if (!fs.existsSync(modelPath)) return;
+                const buffer = fs.readFileSync(modelPath);
+                
+                const totalSplats = Math.floor(buffer.byteLength / 32);
+                numSplatPoints = totalSplats;
+
+                const positions = new Float32Array(totalSplats * 3);
+                const colors = new Float32Array(totalSplats * 4);
+                const scales = new Float32Array(totalSplats);
+
+                const dataView = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+                for (let i = 0; i < totalSplats; i++) {
+                    const offset = i * 32;
+                    positions[i * 3 + 0] = dataView.getFloat32(offset + 0, true);
+                    positions[i * 3 + 1] = dataView.getFloat32(offset + 4, true);
+                    positions[i * 3 + 2] = dataView.getFloat32(offset + 8, true);
+
+                    const sx = Math.abs(dataView.getFloat32(offset + 12, true));
+                    const sy = Math.abs(dataView.getFloat32(offset + 16, true));
+                    const sz = Math.abs(dataView.getFloat32(offset + 20, true));
+                    scales[i] = Math.max(0.02, Math.min((sx + sy + sz) / 3.0, 0.45));
+
+                    colors[i * 4 + 0] = dataView.getUint8(offset + 24) / 255.0;
+                    colors[i * 4 + 1] = dataView.getUint8(offset + 25) / 255.0;
+                    colors[i * 4 + 2] = dataView.getUint8(offset + 26) / 255.0;
+                    colors[i * 4 + 3] = dataView.getUint8(offset + 27) / 255.0 || 0.8;
+                }
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, colBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, scaleBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, scales, gl.STATIC_DRAW);
+
+                document.getElementById('lbl-splats').innerText = totalSplats.toLocaleString() + " Pts";
+            } catch (err) {
+                console.error("Load Splat error:", err);
+            }
+        }
+
+        const pMatrix = new Float32Array(16);
+        const vMatrix = new Float32Array(16);
+        const mvpMatrix = new Float32Array(16);
+
+        function render(now) {
+            requestAnimationFrame(render);
+
+            frameCount++;
+            if (now - lastTime >= 1000) {
+                fpsElem.innerText = Math.round((frameCount * 1000) / (now - lastTime));
+                frameCount = 0;
+                lastTime = now;
+            }
+
+            if (autoSpin) {
+                spinAngle += 0.0035;
+            }
+
+            const eyeX = targetLookAt[0] + cameraRadius * Math.sin(spinAngle) * Math.cos(pitchAngle);
+            const eyeY = targetLookAt[1] + cameraRadius * Math.sin(pitchAngle);
+            const eyeZ = targetLookAt[2] + cameraRadius * Math.cos(spinAngle) * Math.cos(pitchAngle);
+
+            const aspect = canvas.width / canvas.height;
+            mat4Perspective(pMatrix, 55 * Math.PI / 180, aspect, 0.1, 100.0);
+            mat4LookAt(vMatrix, [eyeX, eyeY, eyeZ], targetLookAt, [0, 1, 0]);
+            mat4Multiply(mvpMatrix, pMatrix, vMatrix);
+
+            gl.clearColor(0.93, 0.90, 0.85, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            if (numSplatPoints > 0) {
+                gl.useProgram(program);
+
+                gl.uniformMatrix4fv(uMVP, false, mvpMatrix);
+                gl.uniform1f(uSizeScale, pointSizeMultiplier);
+                gl.uniform1f(uViewportHeight, canvas.height);
+                gl.uniform1f(uOpacityBoost, opacityMultiplier);
+                gl.uniform1f(uExposure, exposure);
+                gl.uniform1f(uMode, renderMode === 'points' ? 1.0 : 0.0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+                gl.enableVertexAttribArray(aPosition);
+                gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, colBuffer);
+                gl.enableVertexAttribArray(aColor);
+                gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+
+                gl.bindBuffer(gl.ARRAY_BUFFER, scaleBuffer);
+                gl.enableVertexAttribArray(aScale);
+                gl.vertexAttribPointer(aScale, 1, gl.FLOAT, false, 0, 0);
+
+                gl.drawArrays(gl.POINTS, 0, numSplatPoints);
+            }
+        }
+
+        // Postshot Controls
+        window.updateSplatScale = (v) => { pointSizeMultiplier = parseFloat(v); document.getElementById('val-size').innerText = parseFloat(v).toFixed(1) + 'x'; };
+        window.updateOpacity = (v) => { opacityMultiplier = parseFloat(v); document.getElementById('val-opacity').innerText = parseFloat(v).toFixed(1) + 'x'; };
+        window.updateExposure = (v) => { exposure = parseFloat(v); document.getElementById('val-exposure').innerText = parseFloat(v).toFixed(1) + 'x'; };
+
+        window.setRenderMode = (mode) => {
+            renderMode = mode;
+            document.getElementById('btn-mode-splat').classList.toggle('active', mode === 'splat');
+            document.getElementById('btn-mode-points').classList.toggle('active', mode === 'points');
+        };
+
+        window.setPreset = (type) => {
+            document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+
+            if (type === 'orbit') {
+                targetLookAt = [...sceneCenter];
+                pitchAngle = 0.35;
+                cameraRadius = 8.2;
+                autoSpin = true;
+            } else if (type === 'facade') {
+                targetLookAt = [...sceneCenter];
+                spinAngle = 0.0;
+                pitchAngle = 0.15;
+                cameraRadius = 7.2;
+                autoSpin = false;
+            } else if (type === 'top') {
+                targetLookAt = [...sceneCenter];
+                pitchAngle = 1.35;
+                cameraRadius = 9.5;
+                autoSpin = false;
+            } else if (type === 'close') {
+                targetLookAt = [...sceneCenter];
+                pitchAngle = 0.25;
+                cameraRadius = 4.2;
+                autoSpin = false;
+            }
+        };
+
+        // ADB Mirroring
+        window.mirrorToPhone = async () => {
+            alert("Model Samsung Galaxy S24 FE cihazınıza yansıtılıyor...");
+            await ipcRenderer.invoke('mirror-adb');
+        };
+
+        window.exportSplat = () => {
+            alert("model.splat dosyası output_3dgs/web_viewer/model.splat konumunda hazır!");
+        };
+
+        // Training Integration
+        window.triggerTraining = () => {
+            const iters = parseInt(document.getElementById('train-iter-slider').value) || 30000;
+            document.getElementById('btn-start-train').style.display = 'none';
+            document.getElementById('btn-stop-train').style.display = 'inline-flex';
+            document.getElementById('training-progress-box').style.display = 'block';
+
+            const logBox = document.getElementById('train-log-box');
+            logBox.innerText += `\n[*] Postshot CUDA Eğitimi Başlatılıyor (${iters.toLocaleString()} Adım - RTX 3090)...`;
+            logBox.scrollTop = logBox.scrollHeight;
+
+            ipcRenderer.send('start-training', { iterations: iters });
+        };
+
+        window.cancelTraining = () => {
+            ipcRenderer.send('stop-training');
+            document.getElementById('btn-start-train').style.display = 'inline-flex';
+            document.getElementById('btn-stop-train').style.display = 'none';
+        };
+
+        ipcRenderer.on('training-log', (e, text) => {
+            const logBox = document.getElementById('train-log-box');
+            
+            // Parse structured progress: [STATUS:step:total:loss:splats]
+            const statusMatch = text.match(/\[STATUS:(\d+):(\d+):([0-9.]+):(\d+)\]/);
+            if (statusMatch) {
+                const curStep = parseInt(statusMatch[1]);
+                const totalSteps = parseInt(statusMatch[2]);
+                const lossVal = parseFloat(statusMatch[3]);
+                const splatCount = parseInt(statusMatch[4]);
+
+                const pct = Math.round((curStep / totalSteps) * 100);
+                document.getElementById('train-pct-text').innerText = pct + '%';
+                document.getElementById('train-bar-fill').style.width = pct + '%';
+                document.getElementById('train-status-text').innerText = `Adım: ${curStep.toLocaleString()} | Splats: ${splatCount.toLocaleString()}`;
+                document.getElementById('lbl-splats').innerText = splatCount.toLocaleString() + ' Pts';
+            }
+
+            // Check if saved checkpoint
+            if (text.includes('[SAVED:')) {
+                loadSplatBinary(); // Live reload Viewport!
+            }
+
+            // Clean display
+            const cleanText = text.replace(/\[STATUS:[^\]]+\]/g, '').replace(/\[SAVED:[^\]]+\]/g, '');
+            if (cleanText.trim()) {
+                logBox.innerText += "\n" + cleanText.trim();
+                logBox.scrollTop = logBox.scrollHeight;
+            }
+        });
+
+        ipcRenderer.on('training-finished', (e, code) => {
+            document.getElementById('btn-start-train').style.display = 'inline-flex';
+            document.getElementById('btn-stop-train').style.display = 'none';
+            document.getElementById('train-status-text').innerText = "✔ Eğitim Tamamlandı!";
+            loadSplatBinary();
+            const logBox = document.getElementById('train-log-box');
+            logBox.innerText += `\n[OK] 3DGS Eğitimi başarıyla tamamlandı! (Kod: ${code})`;
+            logBox.scrollTop = logBox.scrollHeight;
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            resize();
+            loadSplatBinary();
+            requestAnimationFrame(render);
+        });
+    </script>
+</body>
+</html>

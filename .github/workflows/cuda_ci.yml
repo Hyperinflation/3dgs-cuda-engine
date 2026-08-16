@@ -1,0 +1,50 @@
+name: NVIDIA CUDA 3DGS Kernel CI & Certification
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-and-certify-cuda:
+    name: Build & Certify CUDA 12.1 Kernels (sm_86 RTX 3090)
+    runs-on: ubuntu-22.04
+    container:
+      image: nvidia/cuda:12.1.1-devel-ubuntu22.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Build Tools & CMake
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq cmake build-essential git
+
+      - name: Verify NVCC CUDA Compiler
+        run: |
+          nvcc --version
+          nvidia-smi || true
+
+      - name: Configure CMake for CUDA Architecture sm_86 (RTX 3090)
+        run: |
+          cmake -B build -S cuda \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CUDA_ARCHITECTURES="75;80;86;89"
+
+      - name: Compile 3DGS CUDA Kernels & Test Harness
+        run: |
+          cmake --build build --config Release -j$(nproc)
+
+      - name: Execute CUDA Certification Harness
+        run: |
+          ./build/test_3dgs_cuda
+
+      - name: Upload Certified CUDA Shared Library Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lib3dgs_cuda_linux_x86_64
+          path: build/lib3dgs_cuda.so
+          if-no-files-found: ignore

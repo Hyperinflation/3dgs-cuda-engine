@@ -1,0 +1,12 @@
+{
+  "name": "3dgs-proton-studio",
+  "version": "1.0.0",
+  "description": "Professional 3D Gaussian Splatting Desktop Studio & Real-time CUDA Viewport",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^43.4.0"
+  }
+}

@@ -1,0 +1,28 @@
+# Binaries, Toolkits and Environments
+venv/
+node_modules/
+desktop_studio/node_modules/
+COLMAP-3.9.1-windows-cuda/
+dist/
+build/
+*.pyc
+__pycache__/
+
+# Large Media, Videos and Intermediates
+*.mp4
+phone_screen.png
+processed_frames/
+
+# Large Point Clouds and Datasets (>100MB)
+*.ply
+output_3dgs/trained_model/
+output_3dgs/dataset/
+output_3dgs/dataset/database.db
+output_3dgs/dataset/sparse/
+output_3dgs/dataset/input/
+
+# Logs and OS
+*.log
+.DS_Store
+Thumbs.db
+.gemini/
