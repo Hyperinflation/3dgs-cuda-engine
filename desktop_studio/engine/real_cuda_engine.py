@@ -3,7 +3,7 @@
 """
 ================================================================================
 POSTSHOT STUDIO PRO - BULLETPROOF NVIDIA RTX 3090 CUDA 3DGS ENGINE
-100% Memory Safe, Zero-OOM, Differentiable Photometric Optimization
+High-Density Adaptive Densification (Target: 3.5M Gaussians)
 ================================================================================
 """
 
@@ -40,7 +40,6 @@ def log_print(msg, flush=True):
     except Exception:
         pass
 
-# Clear previous log file on new run
 try:
     with open(LOG_FILE, "w", encoding="utf-8") as f:
         f.write("=== POSTSHOT STUDIO PRO - EGITIM LOGLARI ===\n")
@@ -153,6 +152,7 @@ class GaussianModel(nn.Module):
     def __init__(self, init_points, init_colors, device="cuda"):
         super().__init__()
         self.device = device
+        self.init_pts_count = len(init_points)
         num_pts = len(init_points)
         
         self._xyz = nn.Parameter(torch.tensor(init_points, dtype=torch.float32, device=device))
@@ -187,7 +187,7 @@ class GaussianModel(nn.Module):
         ]
         return torch.optim.Adam(params, lr=0.0, eps=1e-15)
 
-    def densify_and_prune(self, max_grad=0.0001, min_opacity=0.005, max_gaussians=3500000):
+    def densify_and_prune(self, max_gaussians=3500000):
         with torch.no_grad():
             grads = self.xyz_gradient_accum / (self.denom + 1e-6)
             grads = torch.nan_to_num(grads, nan=0.0)
@@ -198,21 +198,21 @@ class GaussianModel(nn.Module):
                 self.denom = torch.zeros((curr_pts, 1), device=self.device)
                 return curr_pts
 
+            # Select top 35% active gradient points for densification
             if grads.numel() > 100:
-                p85_grad = torch.quantile(grads, 0.85).item()
-                effective_grad = min(max_grad, max(p85_grad * 0.8, 1e-6))
+                effective_grad = torch.quantile(grads, 0.65).item()
             else:
-                effective_grad = max_grad
+                effective_grad = 0.00005
 
             scales = self.get_scaling
             max_scales = torch.max(scales, dim=-1).values
             
-            # 1. Clone (Under-reconstructed)
+            # 1. Clone (Under-reconstructed regions: Clone up to 40,000 points)
             clone_mask = (grads.squeeze(-1) >= effective_grad) & (max_scales <= 0.20)
-            if clone_mask.sum() > 30000:
+            if clone_mask.sum() > 40000:
                 indices = torch.where(clone_mask)[0]
                 clone_mask = torch.zeros_like(clone_mask)
-                clone_mask[indices[:30000]] = True
+                clone_mask[indices[:40000]] = True
 
             new_xyz_list = [self._xyz]
             new_feat_list = [self._features]
@@ -228,12 +228,12 @@ class GaussianModel(nn.Module):
                 new_scal_list.append(self._scaling[clone_mask])
                 new_rot_list.append(self._rotation[clone_mask])
 
-            # 2. Split (Over-reconstructed)
+            # 2. Split (Over-reconstructed regions: Split up to 25,000 points)
             split_mask = (grads.squeeze(-1) >= effective_grad) & (max_scales > 0.20)
-            if split_mask.sum() > 15000:
+            if split_mask.sum() > 25000:
                 indices = torch.where(split_mask)[0]
                 split_mask = torch.zeros_like(split_mask)
-                split_mask[indices[:15000]] = True
+                split_mask[indices[:25000]] = True
 
             if split_mask.sum() > 0:
                 stds = scales[split_mask]
@@ -256,12 +256,12 @@ class GaussianModel(nn.Module):
             self._scaling = nn.Parameter(torch.cat(new_scal_list, dim=0))
             self._rotation = nn.Parameter(torch.cat(new_rot_list, dim=0))
 
-            # 3. Prune
+            # 3. Soft Prune (Protect all initial SfM points + visible points)
             opacities = self.get_opacity.squeeze(-1)
-            keep_mask = (opacities >= min_opacity)
-            if keep_mask.sum() < 50000:
-                keep_mask = torch.ones_like(opacities, dtype=torch.bool)
-            
+            keep_mask = (opacities >= 0.002)
+            # Never prune initial baseline points
+            keep_mask[:self.init_pts_count] = True
+
             self._xyz = nn.Parameter(self._xyz[keep_mask])
             self._features = nn.Parameter(self._features[keep_mask])
             self._opacity = nn.Parameter(self._opacity[keep_mask])
@@ -275,7 +275,7 @@ class GaussianModel(nn.Module):
 
     def reset_opacity(self):
         with torch.no_grad():
-            self._opacity.data = torch.clamp(self._opacity.data, max=0.0)
+            self._opacity.data = torch.clamp(self._opacity.data, max=1.2)
 
 
 class FastCUDARasterizer:
@@ -435,14 +435,14 @@ def run_training(total_iterations=30000, save_interval=1000):
 
             optimizer.step()
 
-            if step > 500 and step <= 15000 and step % 500 == 0:
-                num_splats = model.densify_and_prune(max_grad=0.0001, min_opacity=0.005)
+            if step > 500 and step <= 25000 and step % 500 == 0:
+                num_splats = model.densify_and_prune()
                 optimizer = model.create_optimizer(xyz_lr=0.00016 * (0.01 ** (step / total_iterations)))
                 torch.cuda.empty_cache()
             else:
                 num_splats = model._xyz.shape[0]
 
-            if step > 0 and step <= 15000 and step % 3000 == 0:
+            if step > 0 and step <= 25000 and step % 3000 == 0:
                 model.reset_opacity()
 
             if step % 50 == 0 or step == 1:
