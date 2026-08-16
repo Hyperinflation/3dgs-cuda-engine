@@ -8,27 +8,36 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-certify-cuda:
-    name: Build & Certify CUDA 12.1 Kernels (sm_86 RTX 3090)
-    runs-on: ubuntu-22.04
+  build-and-certify:
+    name: Build & Certify CUDA (${{ matrix.os_name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os_name: "Ubuntu 22.04 LTS"
+            image: "nvidia/cuda:12.1.1-devel-ubuntu22.04"
+            pkg_cmd: "apt-get update -qq && apt-get install -y -qq cmake build-essential git"
+          - os_name: "Fedora Linux 39 (RPM / DNF)"
+            image: "nvidia/cuda:12.4.1-devel-fedora39"
+            pkg_cmd: "dnf install -y -q cmake gcc-c++ git make"
+
     container:
-      image: nvidia/cuda:12.1.1-devel-ubuntu22.04
+      image: ${{ matrix.image }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Build Tools & CMake
-        run: |
-          apt-get update -qq
-          apt-get install -y -qq cmake build-essential git
+      - name: Install Build Tools & CMake on ${{ matrix.os_name }}
+        run: ${{ matrix.pkg_cmd }}
 
       - name: Verify NVCC CUDA Compiler
         run: |
           nvcc --version
           nvidia-smi || true
 
-      - name: Configure CMake for CUDA Architecture sm_86 (RTX 3090)
+      - name: Configure CMake for Architecture sm_86 (RTX 3090)
         run: |
           cmake -B build -S cuda \
             -DCMAKE_BUILD_TYPE=Release \
@@ -42,9 +51,9 @@ jobs:
         run: |
           ./build/test_3dgs_cuda
 
-      - name: Upload Certified CUDA Shared Library Artifact
+      - name: Upload Certified CUDA Shared Library Artifact (${{ matrix.os_name }})
         uses: actions/upload-artifact@v4
         with:
-          name: lib3dgs_cuda_linux_x86_64
+          name: lib3dgs_cuda_${{ matrix.os_name }}
           path: build/lib3dgs_cuda.so
           if-no-files-found: ignore
