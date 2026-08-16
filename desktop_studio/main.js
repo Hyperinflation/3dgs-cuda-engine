@@ -1,16 +1,16 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const { exec, spawn } = require('child_process');
-const fs = require('fs');
+const { exec } = require('child_process');
+const { runNativeTraining } = require('./engine/native_engine');
 
-// GPU Hardware Acceleration for RTX 3090
+// GPU Hardware Acceleration for NVIDIA RTX 3090
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-zero-copy');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
 app.commandLine.appendSwitch('high-dpi-support', '1');
 
 let mainWindow;
-let trainingProcess = null;
+let isTrainingActive = false;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -18,7 +18,7 @@ function createWindow() {
         height: 920,
         minWidth: 1100,
         minHeight: 720,
-        title: "Postshot Studio Pro - 3D Gaussian Splatting Mimari Engine",
+        title: "Postshot Studio Pro - Native C++ & WebGL2 Engine (Zero Python)",
         backgroundColor: "#f5f1ea",
         icon: path.join(__dirname, 'icon.png'),
         webPreferences: {
@@ -33,9 +33,7 @@ function createWindow() {
 
     mainWindow.on('closed', () => {
         mainWindow = null;
-        if (trainingProcess) {
-            try { trainingProcess.kill(); } catch (e) {}
-        }
+        isTrainingActive = false;
     });
 }
 
@@ -47,7 +45,7 @@ app.on('window-all-closed', () => {
     }
 });
 
-// IPC: 1-Click ADB Phone Mirroring
+// IPC: 1-Click ADB Phone Mirroring (Pure Native ADB)
 ipcMain.handle('mirror-adb', async () => {
     const adbPath = "C:\\Users\\halit\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe";
     return new Promise((resolve) => {
@@ -63,70 +61,35 @@ ipcMain.handle('mirror-adb', async () => {
     });
 });
 
-// IPC: Postshot CUDA Training
+// IPC: Pure Native 3DGS Training (Zero Python)
 ipcMain.on('start-training', (event, args) => {
-    if (trainingProcess) return;
+    if (isTrainingActive) return;
+    isTrainingActive = true;
 
-    const rootDir = path.resolve(__dirname, '..');
-    const pythonPath = path.join(rootDir, 'venv', 'Scripts', 'python.exe');
-    const scriptPath = path.join(__dirname, 'engine', 'trainer.py');
     const iters = args.iterations || 30000;
 
-    if (!fs.existsSync(pythonPath)) {
-        if (mainWindow) {
-            mainWindow.webContents.send('training-log', `\n[HATA] Python ortamı bulunamadı: ${pythonPath}`);
-            mainWindow.webContents.send('training-finished', 1);
-        }
-        return;
-    }
-
     try {
-        trainingProcess = spawn(pythonPath, [scriptPath, '--iterations', iters.toString()], {
-            cwd: rootDir,
-            windowsHide: true
-        });
-
-        trainingProcess.stdout.on('data', (data) => {
-            if (mainWindow) {
-                mainWindow.webContents.send('training-log', data.toString());
-            }
-        });
-
-        trainingProcess.stderr.on('data', (data) => {
-            if (mainWindow) {
-                mainWindow.webContents.send('training-log', data.toString());
-            }
-        });
-
-        trainingProcess.on('error', (err) => {
-            if (mainWindow) {
-                mainWindow.webContents.send('training-log', `\n[HATA] İşlem başlatılamadı: ${err.message}`);
-                mainWindow.webContents.send('training-finished', 1);
-            }
-            trainingProcess = null;
-        });
-
-        trainingProcess.on('close', (code) => {
-            trainingProcess = null;
-            if (mainWindow) {
-                mainWindow.webContents.send('training-finished', code || 0);
+        runNativeTraining(iters, 1000, (logText) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('training-log', logText);
+                if (logText.includes('[DONE:')) {
+                    isTrainingActive = false;
+                    mainWindow.webContents.send('training-finished', 0);
+                }
             }
         });
     } catch (err) {
-        if (mainWindow) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('training-log', `\n[HATA] ${err.message}`);
             mainWindow.webContents.send('training-finished', 1);
         }
-        trainingProcess = null;
+        isTrainingActive = false;
     }
 });
 
 ipcMain.on('stop-training', () => {
-    if (trainingProcess) {
-        try { trainingProcess.kill(); } catch (e) {}
-        trainingProcess = null;
-        if (mainWindow) {
-            mainWindow.webContents.send('training-log', "\n[!] Eğitim kullanıcı tarafından durduruldu.\n");
-        }
+    isTrainingActive = false;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('training-log', "\n[!] Eğitim durduruldu.\n");
     }
 });
