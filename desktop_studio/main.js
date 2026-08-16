@@ -11,6 +11,13 @@ app.commandLine.appendSwitch('high-dpi-support', '1');
 
 let mainWindow;
 let trainingProcess = null;
+const logFilePath = path.resolve(__dirname, '..', 'training.log');
+
+function appendLog(msg) {
+    try {
+        fs.appendFileSync(logFilePath, msg + '\n', 'utf8');
+    } catch (e) {}
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -63,6 +70,15 @@ ipcMain.handle('mirror-adb', async () => {
     });
 });
 
+// IPC: Open Log File
+ipcMain.handle('open-log-file', async () => {
+    if (!fs.existsSync(logFilePath)) {
+        fs.writeFileSync(logFilePath, "=== POSTSHOT STUDIO PRO - LOG DOSYASI ===\n", 'utf8');
+    }
+    exec(`notepad.exe "${logFilePath}"`);
+    return { success: true };
+});
+
 // IPC: Real RTX 3090 Photometric Loss CUDA Training
 ipcMain.on('start-training', (event, args) => {
     if (trainingProcess) return;
@@ -73,40 +89,53 @@ ipcMain.on('start-training', (event, args) => {
     const iters = args.iterations || 30000;
 
     try {
+        fs.writeFileSync(logFilePath, `=== POSTSHOT STUDIO PRO - EGITIM BASLATILDI (${new Date().toLocaleString()}) ===\n`, 'utf8');
+    } catch (e) {}
+
+    try {
         trainingProcess = spawn(pythonPath, [scriptPath, '--iterations', iters.toString()], {
             cwd: rootDir,
             windowsHide: true
         });
 
         trainingProcess.stdout.on('data', (data) => {
+            const str = data.toString();
+            appendLog(str);
             if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('training-log', data.toString());
+                mainWindow.webContents.send('training-log', str);
             }
         });
 
         trainingProcess.stderr.on('data', (data) => {
+            const str = data.toString();
+            appendLog(str);
             if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('training-log', data.toString());
+                mainWindow.webContents.send('training-log', str);
             }
         });
 
         trainingProcess.on('error', (err) => {
+            const str = `\n[HATA] İşlem başlatılamadı: ${err.message}\n`;
+            appendLog(str);
             if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('training-log', `\n[HATA] ${err.message}`);
+                mainWindow.webContents.send('training-log', str);
                 mainWindow.webContents.send('training-finished', 1);
             }
             trainingProcess = null;
         });
 
         trainingProcess.on('close', (code) => {
+            appendLog(`\n=== EGITIM ISLEMI SONLANDI (Kod: ${code}) ===\n`);
             trainingProcess = null;
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('training-finished', code || 0);
             }
         });
     } catch (err) {
+        const str = `\n[HATA] ${err.message}\n`;
+        appendLog(str);
         if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('training-log', `\n[HATA] ${err.message}`);
+            mainWindow.webContents.send('training-log', str);
             mainWindow.webContents.send('training-finished', 1);
         }
         trainingProcess = null;
@@ -117,6 +146,7 @@ ipcMain.on('stop-training', () => {
     if (trainingProcess) {
         try { trainingProcess.kill(); } catch (e) {}
         trainingProcess = null;
+        appendLog("\n[!] Eğitim kullanıcı tarafından durduruldu.\n");
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('training-log', "\n[!] Eğitim kullanıcı tarafından durduruldu.\n");
         }

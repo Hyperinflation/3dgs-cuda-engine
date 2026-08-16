@@ -30,6 +30,23 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+LOG_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "training.log"))
+
+def log_print(msg, flush=True):
+    print(msg, flush=flush)
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8", errors="replace") as f:
+            f.write(str(msg) + "\n")
+    except Exception:
+        pass
+
+# Clear previous log file on new run
+try:
+    with open(LOG_FILE, "w", encoding="utf-8") as f:
+        f.write("=== POSTSHOT STUDIO PRO - EGITIM LOGLARI ===\n")
+except Exception:
+    pass
+
 import torch
 import cv2
 import numpy as np
@@ -374,10 +391,10 @@ def export_splat(model, out_splat_path):
 def run_training(total_iterations=30000, save_interval=1000):
     try:
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        print(f"[*] Postshot CUDA Engine Baslatildi (GPU: {torch.cuda.get_device_name(0)})", flush=True)
+        log_print(f"[*] Postshot CUDA Engine Baslatildi (GPU: {torch.cuda.get_device_name(0)})")
         
         pts_init, cols_init, images = load_dataset()
-        print(f"[+] {len(images)} Kamera Pozu, {len(pts_init):,} Baslangic Noktasi Yuklendi", flush=True)
+        log_print(f"[+] {len(images)} Kamera Pozu, {len(pts_init):,} Baslangic Noktasi Yuklendi")
 
         model = GaussianModel(pts_init, cols_init, device=device)
         rasterizer = FastCUDARasterizer(device=device)
@@ -394,7 +411,7 @@ def run_training(total_iterations=30000, save_interval=1000):
         out_splat = os.path.join("output_3dgs", "web_viewer", "model.splat")
         export_splat(model, out_splat)
 
-        print(f"[*] Postshot Egitimi Basliyor (Hedef: {total_iterations:,} adim)...", flush=True)
+        log_print(f"[*] Postshot Egitimi Basliyor (Hedef: {total_iterations:,} adim)...")
 
         start_time = time.time()
         for step in range(1, total_iterations + 1):
@@ -429,20 +446,20 @@ def run_training(total_iterations=30000, save_interval=1000):
                 model.reset_opacity()
 
             if step % 50 == 0 or step == 1:
-                print(f"[STATUS:{step}:{total_iterations}:{loss.item():.4f}:{num_splats}]", flush=True)
-                print(f"[{step:05d}/{total_iterations}] Loss: {loss.item():.4f} | Splats: {num_splats:,} | GPU: RTX 3090", flush=True)
+                log_print(f"[STATUS:{step}:{total_iterations}:{loss.item():.4f}:{num_splats}]")
+                log_print(f"[{step:05d}/{total_iterations}] Loss: {loss.item():.4f} | Splats: {num_splats:,} | GPU: RTX 3090")
 
             if step % save_interval == 0 or step == total_iterations:
                 mb = export_splat(model, out_splat)
-                print(f"[SAVED:{mb:.2f}:{num_splats}]", flush=True)
-                print(f"[OK] Adim {step:,}: model.splat kaydedildi ({mb:.2f} MB - {num_splats:,} Splats)", flush=True)
+                log_print(f"[SAVED:{mb:.2f}:{num_splats}]")
+                log_print(f"[OK] Adim {step:,}: model.splat kaydedildi ({mb:.2f} MB - {num_splats:,} Splats)")
 
         export_splat(model, out_splat)
-        print(f"[DONE:{num_splats}]", flush=True)
-        print(f"[OK] EGITIM TAMAMLANDI! Toplam Sure: {(time.time() - start_time)/60:.1f} dk", flush=True)
+        log_print(f"[DONE:{num_splats}]")
+        log_print(f"[OK] EGITIM TAMAMLANDI! Toplam Sure: {(time.time() - start_time)/60:.1f} dk")
     except Exception as e:
-        print(f"\n[HATA] Eğitim sırasında hata oluştu: {str(e)}", flush=True)
-        traceback.print_exc()
+        log_print(f"\n[HATA] Eğitim sırasında hata oluştu: {str(e)}")
+        log_print(traceback.format_exc())
         sys.exit(1)
 
 

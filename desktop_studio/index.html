@@ -413,6 +413,34 @@
             line-height: 1.4;
             margin-top: 10px;
             border: 1px solid var(--panel-border);
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            cursor: text !important;
+        }
+
+        .log-actions-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .btn-log-action {
+            background: var(--panel-sub);
+            border: 1px solid var(--panel-border);
+            color: var(--text-secondary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-log-action:hover {
+            background: var(--caramel);
+            color: #fff;
+            border-color: var(--caramel);
         }
 
         /* Bottom Luxury Footer */
@@ -526,6 +554,11 @@
 [*] NVIDIA RTX 3090 (24GB VRAM) bağlandı.
 [*] 266 Kamera pozu ve COLMAP veri kümesi yüklendi.
 [*] 'CUDA Eğitimi Başlat' butonuna basarak fotogerçekçi eğitimi başlatabilirsiniz.</div>
+
+                <div class="log-actions-row">
+                    <button class="btn-log-action" id="btn-copy-log" onclick="copyLogs()">📋 Logları Kopyala</button>
+                    <button class="btn-log-action" onclick="openLogFile()">📂 Log Dosyasını Aç</button>
+                </div>
             </div>
         </aside>
 
@@ -938,6 +971,18 @@
 
         window.exportSplat = () => {
             alert("model.splat dosyası output_3dgs/web_viewer/model.splat konumunda hazır!");
+        };
+
+        window.copyLogs = () => {
+            const text = document.getElementById('train-log-box').innerText;
+            navigator.clipboard.writeText(text);
+            const btn = document.getElementById('btn-copy-log');
+            btn.innerText = '✔ Kopyalandı!';
+            setTimeout(() => { btn.innerText = '📋 Logları Kopyala'; }, 2000);
+        };
+
+        window.openLogFile = async () => {
+            await ipcRenderer.invoke('open-log-file');
         };
 
         // Training Integration
