@@ -275,7 +275,7 @@ class GaussianModel(nn.Module):
 
     def reset_opacity(self):
         with torch.no_grad():
-            self._opacity.data = torch.clamp(self._opacity.data, max=torch.logit(torch.tensor(0.5)))
+            self._opacity.data = torch.clamp(self._opacity.data, max=0.0)
 
 
 class FastCUDARasterizer:
