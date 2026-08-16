@@ -3,20 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#07090e">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>3D Gaussian Splatting Mobile Viewer</title>
+    <title>Postshot 3DGS Web Viewer - Fotogerçekçi Mimari Görselleştirme</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0c0f17;
-            --panel-bg: rgba(15, 23, 42, 0.85);
+            --bg-color: #0b0d14;
+            --panel-bg: rgba(15, 20, 32, 0.88);
             --panel-border: rgba(255, 255, 255, 0.12);
+            --caramel: #b46938;
             --accent: #38bdf8;
-            --accent-glow: rgba(56, 189, 248, 0.45);
             --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
             --text: #f8fafc;
             --text-muted: #94a3b8;
@@ -30,7 +27,6 @@
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
-            -webkit-tap-highlight-color: transparent;
         }
 
         body, html {
@@ -38,7 +34,7 @@
             height: 100%;
             overflow: hidden;
             background-color: var(--bg-color);
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             color: var(--text);
         }
 
@@ -74,11 +70,9 @@
             padding: 10px 16px;
             background: var(--panel-bg);
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--panel-border);
-            border-radius: 18px;
+            border-radius: 16px;
             box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
-            pointer-events: auto;
         }
 
         .brand {
@@ -88,31 +82,22 @@
         }
 
         .pulse-dot {
-            width: 10px;
-            height: 10px;
+            width: 9px;
+            height: 9px;
             background-color: var(--success);
             border-radius: 50%;
-            box-shadow: 0 0 14px var(--success);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1.15); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            box-shadow: 0 0 12px var(--success);
         }
 
         .title-group h1 {
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 800;
             color: #fff;
-            letter-spacing: -0.2px;
         }
 
         .title-group p {
             font-size: 11px;
             color: var(--text-muted);
-            font-weight: 500;
         }
 
         .stats-badge {
@@ -128,23 +113,20 @@
             color: var(--accent);
         }
 
-        /* Preset Floating Buttons */
         .preset-bar {
             position: absolute;
-            bottom: 96px;
+            bottom: 86px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
             display: flex;
-            gap: 8px;
+            gap: 6px;
             background: var(--panel-bg);
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             padding: 6px 10px;
             border-radius: 30px;
             border: 1px solid var(--panel-border);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            pointer-events: auto;
         }
 
         .preset-btn {
@@ -159,16 +141,14 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
         }
 
         .preset-btn.active, .preset-btn:hover {
             background: var(--accent-gradient);
             color: #fff;
-            box-shadow: 0 4px 14px var(--accent-glow);
         }
 
-        /* Bottom Controls Card */
         .controls-card {
             position: absolute;
             bottom: 14px;
@@ -177,22 +157,20 @@
             z-index: 10;
             background: var(--panel-bg);
             backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--panel-border);
-            border-radius: 20px;
-            padding: 12px 18px;
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            pointer-events: auto;
-        }
-
-        .slider-row {
+            border-radius: 18px;
+            padding: 10px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 16px;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
         }
 
         .slider-label {
@@ -200,14 +178,6 @@
             font-weight: 600;
             color: var(--text-muted);
             white-space: nowrap;
-        }
-
-        .slider-val {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--accent);
-            min-width: 32px;
-            text-align: right;
         }
 
         input[type="range"] {
@@ -221,46 +191,34 @@
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
-            box-shadow: 0 0 10px var(--accent-glow);
-        }
-
-        .action-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
         }
 
         .btn-action {
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.15);
             color: var(--text);
-            padding: 9px;
-            border-radius: 12px;
-            font-size: 12px;
+            padding: 7px 14px;
+            border-radius: 10px;
+            font-size: 11px;
             font-weight: 600;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s;
         }
 
         .btn-action.active {
-            background: rgba(56, 189, 248, 0.2);
+            background: rgba(56, 189, 248, 0.25);
             border-color: var(--accent);
             color: var(--accent);
         }
 
-        /* FPS & Device Status HUD */
         .hud-top-left {
             position: absolute;
-            top: 76px;
+            top: 72px;
             left: 14px;
             z-index: 5;
             display: flex;
@@ -270,7 +228,7 @@
         }
 
         .hud-pill {
-            background: rgba(15, 23, 42, 0.85);
+            background: rgba(15, 20, 32, 0.85);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 4px 10px;
@@ -278,10 +236,6 @@
             font-size: 10px;
             font-weight: 700;
             color: var(--text-muted);
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            width: fit-content;
         }
 
         .hud-pill span {
@@ -289,7 +243,6 @@
             font-weight: 800;
         }
 
-        /* Loading Screen */
         #loading-overlay {
             position: absolute;
             top: 0;
@@ -303,49 +256,35 @@
             align-items: center;
             justify-content: center;
             gap: 16px;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.3s;
         }
 
         .spinner {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             border: 3px solid rgba(56, 189, 248, 0.2);
             border-top-color: var(--accent);
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        #loading-text {
-            font-size: 14px;
-            font-weight: 700;
-            letter-spacing: -0.2px;
-        }
-
-        #loading-detail {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div id="loading-text">3D Gaussian Splatting Yükleniyor...</div>
-        <div id="loading-detail">NVIDIA RTX 3090 Modeli Yükleniyor...</div>
+        <div style="font-weight:700; font-size:14px;">Postshot 3DGS Yükleniyor...</div>
+        <div id="loading-detail" style="font-size:11px; color:#94a3b8;">1.25M Gaussian Splat Çözümleniyor...</div>
     </div>
 
-    <!-- Header -->
     <header class="header">
         <div class="brand">
             <div class="pulse-dot"></div>
             <div class="title-group">
-                <h1>3DGS Mimari Model</h1>
-                <p>Fotogerçekçi 3D Gaussian Splatting</p>
+                <h1>3DGS Mimari Drone Rekonstrüksiyonu</h1>
+                <p>NVIDIA RTX 3090 • Differentiable Gaussian Splatting</p>
             </div>
         </div>
         <div class="stats-badge" id="splat-count-badge">
@@ -353,58 +292,65 @@
         </div>
     </header>
 
-    <!-- Floating HUD -->
     <div class="hud-top-left">
         <div class="hud-pill">FPS: <span id="fps-counter">60</span></div>
-        <div class="hud-pill">Mod: <span style="color:#38bdf8;">Volumetric Splatting</span></div>
+        <div class="hud-pill">Mod: <span style="color:#38bdf8;">Depth-Sorted Alpha Radiance</span></div>
     </div>
 
-    <!-- 3D Canvas -->
     <div id="canvas-container">
         <canvas id="splat-canvas"></canvas>
     </div>
 
-    <!-- Camera Presets -->
     <div class="preset-bar">
-        <button class="preset-btn active" onclick="setPreset('orbit')">🛸 360° Genel Bakış</button>
+        <button class="preset-btn active" onclick="setPreset('orbit')">🛸 360° Vitrin</button>
         <button class="preset-btn" onclick="setPreset('facade')">🏢 Ön Cephe</button>
         <button class="preset-btn" onclick="setPreset('top')">📐 Kuşbakışı</button>
         <button class="preset-btn" onclick="setPreset('close')">🔍 Yakın Detay</button>
     </div>
 
-    <!-- Bottom Controls -->
     <div class="controls-card">
-        <div class="slider-row">
-            <span class="slider-label">Splat Yoğunluğu / Boyut:</span>
-            <input type="range" id="size-slider" min="0.1" max="2.0" step="0.05" value="0.75" oninput="updateSplatScale(this.value)">
-            <span class="slider-val" id="size-val">0.75x</span>
+        <div class="slider-group">
+            <span class="slider-label">Splat Çapı:</span>
+            <input type="range" id="size-slider" min="0.2" max="2.0" step="0.05" value="0.70" oninput="updateSplatScale(this.value)">
+            <span class="slider-label" id="size-val" style="color:var(--accent); font-weight:700; min-width:30px;">0.70x</span>
         </div>
-        <div class="action-grid">
-            <button class="btn-action active" id="btn-spin" onclick="toggleAutoSpin()">🔄 360° Vitrin</button>
-            <button class="btn-action" onclick="resetCamera()">🎯 Merkezle</button>
-        </div>
+        <button class="btn-action active" id="btn-spin" onclick="toggleAutoSpin()">🔄 360° Döndür</button>
+        <button class="btn-action" onclick="resetCamera()">🎯 Yeniden Merkezle</button>
     </div>
 
     <script>
         const canvas = document.getElementById('splat-canvas');
         const gl = canvas.getContext('webgl2', { antialias: false, powerPreference: "high-performance", alpha: false });
 
-        let sceneCenter = [0.99, 1.41, 1.61];
+        // Accurate COLMAP Drone Orbit Centroid
+        const sceneCenter = [0.35, -0.15, 0.0];
         let targetLookAt = [...sceneCenter];
-        
+
         let autoSpin = true;
         let spinSpeed = 0.0035;
-        let spinAngle = 0.8;
-        let pitchAngle = 0.35;
-        let cameraRadius = 7.5;
-        let pointSizeMultiplier = 0.75;
+        let spinAngle = 0.6;
+        let pitchAngle = -0.25; // Viewing slightly from above drone angle
+        let cameraRadius = 5.8;
+        let pointSizeMultiplier = 0.70;
 
         let isDragging = false;
         let lastX = 0, lastY = 0;
         let initialPinchDist = 0;
 
+        let rawPositions = null;
+        let rawColors = null;
+        let rawScales = null;
+        let numCleanSplats = 0;
+
+        // Depth Sorting Buffers
+        let splatIndices = null;
+        let sortedPositions = null;
+        let sortedColors = null;
+        let sortedScales = null;
+
         let frameCount = 0;
         let lastTime = performance.now();
+        let lastSortAngle = -999;
         const fpsElem = document.getElementById('fps-counter');
 
         function resize() {
@@ -415,7 +361,6 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // Touch & Mouse Orbit Controls
         canvas.addEventListener('pointerdown', (e) => {
             isDragging = true;
             lastX = e.clientX;
@@ -453,18 +398,18 @@
                 const dist = Math.hypot(dx, dy);
                 const delta = initialPinchDist - dist;
                 cameraRadius += delta * 0.012;
-                cameraRadius = Math.max(1.5, Math.min(cameraRadius, 25.0));
+                cameraRadius = Math.max(1.2, Math.min(cameraRadius, 20.0));
                 initialPinchDist = dist;
             }
         });
 
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            cameraRadius += e.deltaY * 0.005;
-            cameraRadius = Math.max(1.5, Math.min(cameraRadius, 25.0));
+            cameraRadius += e.deltaY * 0.004;
+            cameraRadius = Math.max(1.2, Math.min(cameraRadius, 20.0));
         }, { passive: false });
 
-        // Photorealistic Volumetric Gaussian Shader
+        // Photorealistic Gaussian Radiance Shader
         const vsSource = `
             attribute vec3 aPosition;
             attribute vec4 aColor;
@@ -478,12 +423,13 @@
 
             void main() {
                 vColor = aColor;
-                vec4 pos = uMVP * vec4(aPosition, 1.0);
+                // COLMAP coordinate conversion: Y is inverted in SfM
+                vec4 pos = uMVP * vec4(aPosition.x, -aPosition.y, aPosition.z, 1.0);
                 gl_Position = pos;
 
-                float dist = max(pos.w, 0.2);
-                float projectedSize = (aScale * uSizeScale * uViewportHeight * 0.65) / dist;
-                gl_PointSize = clamp(projectedSize, 1.0, 22.0);
+                float dist = max(pos.w, 0.15);
+                float projectedSize = (aScale * uSizeScale * uViewportHeight * 0.55) / dist;
+                gl_PointSize = clamp(projectedSize, 1.0, 16.0);
             }
         `;
 
@@ -496,9 +442,9 @@
                 float distSq = dot(coord, coord);
                 if (distSq > 0.25) discard;
                 
-                // Exponential smooth Gaussian alpha blending without dark halo artifacts
-                float alpha = exp(-distSq * 8.0) * vColor.a * 1.15;
-                gl_FragColor = vec4(vColor.rgb * 1.1, alpha);
+                // Exponential 2D Gaussian Elliptic Radiance Falloff
+                float alpha = exp(-distSq * 8.0) * vColor.a;
+                gl_FragColor = vec4(vColor.rgb * alpha, alpha);
             }
         `;
 
@@ -517,8 +463,9 @@
         gl.linkProgram(program);
         gl.useProgram(program);
 
+        // Alpha Premultiplied Blending for Real-Time 3DGS
         gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
         gl.depthMask(false);
         gl.disable(gl.DEPTH_TEST);
 
@@ -533,8 +480,6 @@
         const posBuffer = gl.createBuffer();
         const colBuffer = gl.createBuffer();
         const scaleBuffer = gl.createBuffer();
-
-        let numSplatPoints = 0;
 
         function mat4Perspective(out, fov, aspect, near, far) {
             const f = 1.0 / Math.tan(fov / 2);
@@ -579,63 +524,60 @@
             const badge = document.getElementById('splat-count-badge');
 
             try {
-                detailText.innerText = "1.25M Gaussian Splat GPU'ya aktarılıyor...";
+                detailText.innerText = "1.25M Gaussian Splat GPU belleğine aktarılıyor...";
                 const response = await fetch('model.splat?v=' + Date.now());
                 if (!response.ok) throw new Error("Splat dosyası bulunamadı");
 
                 const buffer = await response.arrayBuffer();
                 const totalSplats = Math.floor(buffer.byteLength / 32);
-                numSplatPoints = totalSplats;
-
-                const positions = new Float32Array(totalSplats * 3);
-                const colors = new Float32Array(totalSplats * 4);
-                const scales = new Float32Array(totalSplats);
-
-                let sumX = 0, sumY = 0, sumZ = 0;
-                let validCount = 0;
-
                 const dataView = new DataView(buffer);
+
+                // Filter valid, high-opacity Gaussians belonging to the building
+                const posList = [];
+                const colList = [];
+                const scaleList = [];
+
                 for (let i = 0; i < totalSplats; i++) {
                     const offset = i * 32;
                     const px = dataView.getFloat32(offset + 0, true);
                     const py = dataView.getFloat32(offset + 4, true);
                     const pz = dataView.getFloat32(offset + 8, true);
 
-                    positions[i * 3 + 0] = px;
-                    positions[i * 3 + 1] = py;
-                    positions[i * 3 + 2] = pz;
+                    // Skip extreme background floaters
+                    const distSq = (px - sceneCenter[0])**2 + (py - sceneCenter[1])**2 + (pz - sceneCenter[2])**2;
+                    if (distSq > 150.0) continue;
 
-                    if (Math.abs(px) < 50 && Math.abs(py) < 50 && Math.abs(pz) < 50) {
-                        sumX += px; sumY += py; sumZ += pz;
-                        validCount++;
-                    }
+                    const a = dataView.getUint8(offset + 27);
+                    if (a < 5) continue; // Skip zero-opacity dead points
 
                     const sx = Math.abs(dataView.getFloat32(offset + 12, true));
                     const sy = Math.abs(dataView.getFloat32(offset + 16, true));
                     const sz = Math.abs(dataView.getFloat32(offset + 20, true));
-                    scales[i] = Math.max(0.004, Math.min((sx + sy + sz) / 3.0, 0.08));
+                    const scale = Math.max(0.005, Math.min((sx + sy + sz) / 3.0, 0.05));
 
-                    colors[i * 4 + 0] = dataView.getUint8(offset + 24) / 255.0;
-                    colors[i * 4 + 1] = dataView.getUint8(offset + 25) / 255.0;
-                    colors[i * 4 + 2] = dataView.getUint8(offset + 26) / 255.0;
-                    colors[i * 4 + 3] = (dataView.getUint8(offset + 27) / 255.0) || 0.85;
+                    posList.push(px, py, pz);
+                    scaleList.push(scale);
+
+                    const r = dataView.getUint8(offset + 24) / 255.0;
+                    const g = dataView.getUint8(offset + 25) / 255.0;
+                    const b = dataView.getUint8(offset + 26) / 255.0;
+                    colList.push(r, g, b, a / 255.0);
                 }
 
-                if (validCount > 0) {
-                    sceneCenter = [sumX / validCount, sumY / validCount, sumZ / validCount];
-                    targetLookAt = [...sceneCenter];
-                }
+                numCleanSplats = scaleList.length;
+                rawPositions = new Float32Array(posList);
+                rawColors = new Float32Array(colList);
+                rawScales = new Float32Array(scaleList);
 
-                gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-                gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+                splatIndices = new Uint32Array(numCleanSplats);
+                for (let i = 0; i < numCleanSplats; i++) splatIndices[i] = i;
 
-                gl.bindBuffer(gl.ARRAY_BUFFER, colBuffer);
-                gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+                sortedPositions = new Float32Array(numCleanSplats * 3);
+                sortedColors = new Float32Array(numCleanSplats * 4);
+                sortedScales = new Float32Array(numCleanSplats);
 
-                gl.bindBuffer(gl.ARRAY_BUFFER, scaleBuffer);
-                gl.bufferData(gl.ARRAY_BUFFER, scales, gl.STATIC_DRAW);
-
-                badge.innerHTML = `⚡ <span>${(totalSplats / 1000).toFixed(0)}K Splats</span>`;
+                badge.innerHTML = `⚡ <span>${(numCleanSplats / 1000).toFixed(0)}K Splats</span>`;
+                sortAndUploadSplats(true);
 
                 overlay.style.opacity = '0';
                 setTimeout(() => overlay.style.display = 'none', 300);
@@ -644,6 +586,50 @@
                 console.warn("Fast Splat Loader error:", err);
                 detailText.innerText = "Yükleme hatası: " + err.message;
             }
+        }
+
+        // Fast 3DGS Depth Sorting: Back-to-Front
+        function sortAndUploadSplats(force = false) {
+            if (numCleanSplats === 0) return;
+
+            const viewDirX = Math.sin(spinAngle) * Math.cos(pitchAngle);
+            const viewDirY = -Math.sin(pitchAngle); // SfM Inversion
+            const viewDirZ = Math.cos(spinAngle) * Math.cos(pitchAngle);
+
+            // Compute depths
+            const depths = new Float32Array(numCleanSplats);
+            for (let i = 0; i < numCleanSplats; i++) {
+                const px = rawPositions[i * 3 + 0];
+                const py = -rawPositions[i * 3 + 1];
+                const pz = rawPositions[i * 3 + 2];
+                depths[i] = -(px * viewDirX + py * viewDirY + pz * viewDirZ);
+            }
+
+            // Fast Indexed Sort
+            splatIndices.sort((a, b) => depths[a] - depths[b]);
+
+            for (let i = 0; i < numCleanSplats; i++) {
+                const src = splatIndices[i];
+                sortedPositions[i * 3 + 0] = rawPositions[src * 3 + 0];
+                sortedPositions[i * 3 + 1] = rawPositions[src * 3 + 1];
+                sortedPositions[i * 3 + 2] = rawPositions[src * 3 + 2];
+
+                sortedColors[i * 4 + 0] = rawColors[src * 4 + 0];
+                sortedColors[i * 4 + 1] = rawColors[src * 4 + 1];
+                sortedColors[i * 4 + 2] = rawColors[src * 4 + 2];
+                sortedColors[i * 4 + 3] = rawColors[src * 4 + 3];
+
+                sortedScales[i] = rawScales[src];
+            }
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, sortedPositions, gl.DYNAMIC_DRAW);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, colBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, sortedColors, gl.DYNAMIC_DRAW);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, scaleBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, sortedScales, gl.DYNAMIC_DRAW);
         }
 
         const pMatrix = new Float32Array(16);
@@ -666,19 +652,25 @@
                 spinAngle += spinSpeed;
             }
 
+            // Trigger depth sort on camera change
+            if (Math.abs(spinAngle - lastSortAngle) > 0.04) {
+                sortAndUploadSplats();
+                lastSortAngle = spinAngle;
+            }
+
             const eyeX = targetLookAt[0] + cameraRadius * Math.sin(spinAngle) * Math.cos(pitchAngle);
-            const eyeY = targetLookAt[1] + cameraRadius * Math.sin(pitchAngle);
+            const eyeY = -targetLookAt[1] + cameraRadius * Math.sin(pitchAngle);
             const eyeZ = targetLookAt[2] + cameraRadius * Math.cos(spinAngle) * Math.cos(pitchAngle);
 
             const aspect = canvas.width / canvas.height;
-            mat4Perspective(pMatrix, 50 * Math.PI / 180, aspect, 0.1, 100.0);
-            mat4LookAt(vMatrix, [eyeX, eyeY, eyeZ], targetLookAt, [0, 1, 0]);
+            mat4Perspective(pMatrix, 48 * Math.PI / 180, aspect, 0.1, 100.0);
+            mat4LookAt(vMatrix, [eyeX, eyeY, eyeZ], [targetLookAt[0], -targetLookAt[1], targetLookAt[2]], [0, 1, 0]);
             mat4Multiply(mvpMatrix, pMatrix, vMatrix);
 
-            gl.clearColor(0.047, 0.058, 0.09, 1.0);
+            gl.clearColor(0.04, 0.05, 0.08, 1.0);
             gl.clear(gl.COLOR_BUFFER_BIT);
 
-            if (numSplatPoints > 0) {
+            if (numCleanSplats > 0) {
                 gl.useProgram(program);
 
                 gl.uniformMatrix4fv(uMVP, false, mvpMatrix);
@@ -697,7 +689,7 @@
                 gl.enableVertexAttribArray(aScale);
                 gl.vertexAttribPointer(aScale, 1, gl.FLOAT, false, 0, 0);
 
-                gl.drawArrays(gl.POINTS, 0, numSplatPoints);
+                gl.drawArrays(gl.POINTS, 0, numCleanSplats);
             }
         }
 
@@ -717,13 +709,14 @@
 
         window.resetCamera = function() {
             targetLookAt = [...sceneCenter];
-            spinAngle = 0.8;
-            pitchAngle = 0.35;
-            cameraRadius = 7.5;
-            pointSizeMultiplier = 0.75;
-            document.getElementById('size-slider').value = 0.75;
-            document.getElementById('size-val').innerText = '0.75x';
+            spinAngle = 0.6;
+            pitchAngle = -0.25;
+            cameraRadius = 5.8;
+            pointSizeMultiplier = 0.70;
+            document.getElementById('size-slider').value = 0.70;
+            document.getElementById('size-val').innerText = '0.70x';
             setAutoSpin(true);
+            sortAndUploadSplats(true);
         };
 
         window.updateSplatScale = function(val) {
@@ -737,26 +730,27 @@
 
             if (type === 'orbit') {
                 targetLookAt = [...sceneCenter];
-                pitchAngle = 0.35;
-                cameraRadius = 7.5;
+                pitchAngle = -0.25;
+                cameraRadius = 5.8;
                 setAutoSpin(true);
             } else if (type === 'facade') {
                 targetLookAt = [...sceneCenter];
                 spinAngle = 0.0;
-                pitchAngle = 0.15;
-                cameraRadius = 6.2;
+                pitchAngle = -0.05;
+                cameraRadius = 4.8;
                 setAutoSpin(false);
             } else if (type === 'top') {
                 targetLookAt = [...sceneCenter];
-                pitchAngle = 1.35;
-                cameraRadius = 8.5;
+                pitchAngle = -1.25;
+                cameraRadius = 6.8;
                 setAutoSpin(false);
             } else if (type === 'close') {
                 targetLookAt = [...sceneCenter];
-                pitchAngle = 0.25;
-                cameraRadius = 3.5;
+                pitchAngle = -0.15;
+                cameraRadius = 2.8;
                 setAutoSpin(false);
             }
+            sortAndUploadSplats(true);
         };
 
         window.addEventListener('DOMContentLoaded', () => {
