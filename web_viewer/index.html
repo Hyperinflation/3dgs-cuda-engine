@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Postshot 3DGS Web Viewer - Fotogerçekçi Mimari Görselleştirme</title>
+    <title>Postshot 3DGS Web Viewer - 60 FPS Ultra Akıcı Mimari Model</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0b0d14;
-            --panel-bg: rgba(15, 20, 32, 0.88);
-            --panel-border: rgba(255, 255, 255, 0.12);
-            --caramel: #b46938;
+            --bg-color: #0d1117;
+            --panel-bg: rgba(18, 24, 38, 0.88);
+            --panel-border: rgba(255, 255, 255, 0.14);
             --accent: #38bdf8;
             --accent-gradient: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
             --text: #f8fafc;
@@ -67,7 +66,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 16px;
+            padding: 10px 18px;
             background: var(--panel-bg);
             backdrop-filter: blur(20px);
             border: 1px solid var(--panel-border);
@@ -159,7 +158,7 @@
             backdrop-filter: blur(24px);
             border: 1px solid var(--panel-border);
             border-radius: 18px;
-            padding: 10px 16px;
+            padding: 10px 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -228,7 +227,7 @@
         }
 
         .hud-pill {
-            background: rgba(15, 20, 32, 0.85);
+            background: rgba(18, 24, 38, 0.85);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             padding: 4px 10px;
@@ -275,8 +274,8 @@
 
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div style="font-weight:700; font-size:14px;">Postshot 3DGS Yükleniyor...</div>
-        <div id="loading-detail" style="font-size:11px; color:#94a3b8;">1.25M Gaussian Splat Çözümleniyor...</div>
+        <div style="font-weight:700; font-size:14px;">3DGS Model Yükleniyor...</div>
+        <div id="loading-detail" style="font-size:11px; color:#94a3b8;">GPU VRAM Hazırlanıyor (1.25M Splats)...</div>
     </div>
 
     <header class="header">
@@ -284,7 +283,7 @@
             <div class="pulse-dot"></div>
             <div class="title-group">
                 <h1>3DGS Mimari Drone Rekonstrüksiyonu</h1>
-                <p>NVIDIA RTX 3090 • Differentiable Gaussian Splatting</p>
+                <p>NVIDIA RTX 3090 • 60 FPS Hacimsel Splat Motoru</p>
             </div>
         </div>
         <div class="stats-badge" id="splat-count-badge">
@@ -294,7 +293,7 @@
 
     <div class="hud-top-left">
         <div class="hud-pill">FPS: <span id="fps-counter">60</span></div>
-        <div class="hud-pill">Mod: <span style="color:#38bdf8;">Depth-Sorted Alpha Radiance</span></div>
+        <div class="hud-pill">GPU Motoru: <span>WebGL2 Hardware Accelerated</span></div>
     </div>
 
     <div id="canvas-container">
@@ -310,9 +309,9 @@
 
     <div class="controls-card">
         <div class="slider-group">
-            <span class="slider-label">Splat Çapı:</span>
-            <input type="range" id="size-slider" min="0.2" max="2.0" step="0.05" value="0.70" oninput="updateSplatScale(this.value)">
-            <span class="slider-label" id="size-val" style="color:var(--accent); font-weight:700; min-width:30px;">0.70x</span>
+            <span class="slider-label">Splat Doluluğu:</span>
+            <input type="range" id="size-slider" min="0.5" max="3.0" step="0.1" value="1.4" oninput="updateSplatScale(this.value)">
+            <span class="slider-label" id="size-val" style="color:var(--accent); font-weight:700; min-width:30px;">1.4x</span>
         </div>
         <button class="btn-action active" id="btn-spin" onclick="toggleAutoSpin()">🔄 360° Döndür</button>
         <button class="btn-action" onclick="resetCamera()">🎯 Yeniden Merkezle</button>
@@ -329,28 +328,17 @@
         let autoSpin = true;
         let spinSpeed = 0.0035;
         let spinAngle = 0.6;
-        let pitchAngle = -0.25; // Viewing slightly from above drone angle
-        let cameraRadius = 5.8;
-        let pointSizeMultiplier = 0.70;
+        let pitchAngle = -0.25;
+        let cameraRadius = 5.2;
+        let pointSizeMultiplier = 1.4;
 
         let isDragging = false;
         let lastX = 0, lastY = 0;
         let initialPinchDist = 0;
-
-        let rawPositions = null;
-        let rawColors = null;
-        let rawScales = null;
-        let numCleanSplats = 0;
-
-        // Depth Sorting Buffers
-        let splatIndices = null;
-        let sortedPositions = null;
-        let sortedColors = null;
-        let sortedScales = null;
+        let numActiveSplats = 0;
 
         let frameCount = 0;
         let lastTime = performance.now();
-        let lastSortAngle = -999;
         const fpsElem = document.getElementById('fps-counter');
 
         function resize() {
@@ -398,7 +386,7 @@
                 const dist = Math.hypot(dx, dy);
                 const delta = initialPinchDist - dist;
                 cameraRadius += delta * 0.012;
-                cameraRadius = Math.max(1.2, Math.min(cameraRadius, 20.0));
+                cameraRadius = Math.max(1.0, Math.min(cameraRadius, 20.0));
                 initialPinchDist = dist;
             }
         });
@@ -406,10 +394,10 @@
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
             cameraRadius += e.deltaY * 0.004;
-            cameraRadius = Math.max(1.2, Math.min(cameraRadius, 20.0));
+            cameraRadius = Math.max(1.0, Math.min(cameraRadius, 20.0));
         }, { passive: false });
 
-        // Photorealistic Gaussian Radiance Shader
+        // High-Performance 60 FPS Shader
         const vsSource = `
             attribute vec3 aPosition;
             attribute vec4 aColor;
@@ -423,13 +411,12 @@
 
             void main() {
                 vColor = aColor;
-                // COLMAP coordinate conversion: Y is inverted in SfM
                 vec4 pos = uMVP * vec4(aPosition.x, -aPosition.y, aPosition.z, 1.0);
                 gl_Position = pos;
 
-                float dist = max(pos.w, 0.15);
-                float projectedSize = (aScale * uSizeScale * uViewportHeight * 0.55) / dist;
-                gl_PointSize = clamp(projectedSize, 1.0, 16.0);
+                float dist = max(pos.w, 0.2);
+                float projectedSize = (aScale * uSizeScale * uViewportHeight * 1.5) / dist;
+                gl_PointSize = clamp(projectedSize, 2.0, 32.0);
             }
         `;
 
@@ -442,9 +429,10 @@
                 float distSq = dot(coord, coord);
                 if (distSq > 0.25) discard;
                 
-                // Exponential 2D Gaussian Elliptic Radiance Falloff
-                float alpha = exp(-distSq * 8.0) * vColor.a;
-                gl_FragColor = vec4(vColor.rgb * alpha, alpha);
+                // Soft Gaussian radial blend with vibrant exposure
+                float alpha = (1.0 - distSq * 3.6) * vColor.a * 1.25;
+                vec3 rgb = vColor.rgb * 1.15;
+                gl_FragColor = vec4(rgb, alpha);
             }
         `;
 
@@ -463,11 +451,10 @@
         gl.linkProgram(program);
         gl.useProgram(program);
 
-        // Alpha Premultiplied Blending for Real-Time 3DGS
         gl.enable(gl.BLEND);
-        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-        gl.depthMask(false);
-        gl.disable(gl.DEPTH_TEST);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
 
         const aPosition = gl.getAttribLocation(program, "aPosition");
         const aColor = gl.getAttribLocation(program, "aColor");
@@ -524,7 +511,7 @@
             const badge = document.getElementById('splat-count-badge');
 
             try {
-                detailText.innerText = "1.25M Gaussian Splat GPU belleğine aktarılıyor...";
+                detailText.innerText = "1.25M Gaussian Splat GPU'ya yükleniyor...";
                 const response = await fetch('model.splat?v=' + Date.now());
                 if (!response.ok) throw new Error("Splat dosyası bulunamadı");
 
@@ -532,10 +519,10 @@
                 const totalSplats = Math.floor(buffer.byteLength / 32);
                 const dataView = new DataView(buffer);
 
-                // Filter valid, high-opacity Gaussians belonging to the building
-                const posList = [];
-                const colList = [];
-                const scaleList = [];
+                const positions = new Float32Array(totalSplats * 3);
+                const colors = new Float32Array(totalSplats * 4);
+                const scales = new Float32Array(totalSplats);
+                let validCount = 0;
 
                 for (let i = 0; i < totalSplats; i++) {
                     const offset = i * 32;
@@ -543,41 +530,39 @@
                     const py = dataView.getFloat32(offset + 4, true);
                     const pz = dataView.getFloat32(offset + 8, true);
 
-                    // Skip extreme background floaters
+                    // Skip far floaters
                     const distSq = (px - sceneCenter[0])**2 + (py - sceneCenter[1])**2 + (pz - sceneCenter[2])**2;
-                    if (distSq > 150.0) continue;
+                    if (distSq > 160.0) continue;
 
-                    const a = dataView.getUint8(offset + 27);
-                    if (a < 5) continue; // Skip zero-opacity dead points
+                    positions[validCount * 3 + 0] = px;
+                    positions[validCount * 3 + 1] = py;
+                    positions[validCount * 3 + 2] = pz;
 
                     const sx = Math.abs(dataView.getFloat32(offset + 12, true));
                     const sy = Math.abs(dataView.getFloat32(offset + 16, true));
                     const sz = Math.abs(dataView.getFloat32(offset + 20, true));
-                    const scale = Math.max(0.005, Math.min((sx + sy + sz) / 3.0, 0.05));
+                    scales[validCount] = Math.max(0.015, Math.min((sx + sy + sz) / 3.0, 0.09));
 
-                    posList.push(px, py, pz);
-                    scaleList.push(scale);
+                    colors[validCount * 4 + 0] = dataView.getUint8(offset + 24) / 255.0;
+                    colors[validCount * 4 + 1] = dataView.getUint8(offset + 25) / 255.0;
+                    colors[validCount * 4 + 2] = dataView.getUint8(offset + 26) / 255.0;
+                    colors[validCount * 4 + 3] = (dataView.getUint8(offset + 27) / 255.0) || 0.85;
 
-                    const r = dataView.getUint8(offset + 24) / 255.0;
-                    const g = dataView.getUint8(offset + 25) / 255.0;
-                    const b = dataView.getUint8(offset + 26) / 255.0;
-                    colList.push(r, g, b, a / 255.0);
+                    validCount++;
                 }
 
-                numCleanSplats = scaleList.length;
-                rawPositions = new Float32Array(posList);
-                rawColors = new Float32Array(colList);
-                rawScales = new Float32Array(scaleList);
+                numActiveSplats = validCount;
 
-                splatIndices = new Uint32Array(numCleanSplats);
-                for (let i = 0; i < numCleanSplats; i++) splatIndices[i] = i;
+                gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, positions.subarray(0, validCount * 3), gl.STATIC_DRAW);
 
-                sortedPositions = new Float32Array(numCleanSplats * 3);
-                sortedColors = new Float32Array(numCleanSplats * 4);
-                sortedScales = new Float32Array(numCleanSplats);
+                gl.bindBuffer(gl.ARRAY_BUFFER, colBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, colors.subarray(0, validCount * 4), gl.STATIC_DRAW);
 
-                badge.innerHTML = `⚡ <span>${(numCleanSplats / 1000).toFixed(0)}K Splats</span>`;
-                sortAndUploadSplats(true);
+                gl.bindBuffer(gl.ARRAY_BUFFER, scaleBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, scales.subarray(0, validCount), gl.STATIC_DRAW);
+
+                badge.innerHTML = `⚡ <span>${(validCount / 1000).toFixed(0)}K Splats</span>`;
 
                 overlay.style.opacity = '0';
                 setTimeout(() => overlay.style.display = 'none', 300);
@@ -586,50 +571,6 @@
                 console.warn("Fast Splat Loader error:", err);
                 detailText.innerText = "Yükleme hatası: " + err.message;
             }
-        }
-
-        // Fast 3DGS Depth Sorting: Back-to-Front
-        function sortAndUploadSplats(force = false) {
-            if (numCleanSplats === 0) return;
-
-            const viewDirX = Math.sin(spinAngle) * Math.cos(pitchAngle);
-            const viewDirY = -Math.sin(pitchAngle); // SfM Inversion
-            const viewDirZ = Math.cos(spinAngle) * Math.cos(pitchAngle);
-
-            // Compute depths
-            const depths = new Float32Array(numCleanSplats);
-            for (let i = 0; i < numCleanSplats; i++) {
-                const px = rawPositions[i * 3 + 0];
-                const py = -rawPositions[i * 3 + 1];
-                const pz = rawPositions[i * 3 + 2];
-                depths[i] = -(px * viewDirX + py * viewDirY + pz * viewDirZ);
-            }
-
-            // Fast Indexed Sort
-            splatIndices.sort((a, b) => depths[a] - depths[b]);
-
-            for (let i = 0; i < numCleanSplats; i++) {
-                const src = splatIndices[i];
-                sortedPositions[i * 3 + 0] = rawPositions[src * 3 + 0];
-                sortedPositions[i * 3 + 1] = rawPositions[src * 3 + 1];
-                sortedPositions[i * 3 + 2] = rawPositions[src * 3 + 2];
-
-                sortedColors[i * 4 + 0] = rawColors[src * 4 + 0];
-                sortedColors[i * 4 + 1] = rawColors[src * 4 + 1];
-                sortedColors[i * 4 + 2] = rawColors[src * 4 + 2];
-                sortedColors[i * 4 + 3] = rawColors[src * 4 + 3];
-
-                sortedScales[i] = rawScales[src];
-            }
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, sortedPositions, gl.DYNAMIC_DRAW);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, colBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, sortedColors, gl.DYNAMIC_DRAW);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, scaleBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, sortedScales, gl.DYNAMIC_DRAW);
         }
 
         const pMatrix = new Float32Array(16);
@@ -652,12 +593,6 @@
                 spinAngle += spinSpeed;
             }
 
-            // Trigger depth sort on camera change
-            if (Math.abs(spinAngle - lastSortAngle) > 0.04) {
-                sortAndUploadSplats();
-                lastSortAngle = spinAngle;
-            }
-
             const eyeX = targetLookAt[0] + cameraRadius * Math.sin(spinAngle) * Math.cos(pitchAngle);
             const eyeY = -targetLookAt[1] + cameraRadius * Math.sin(pitchAngle);
             const eyeZ = targetLookAt[2] + cameraRadius * Math.cos(spinAngle) * Math.cos(pitchAngle);
@@ -667,10 +602,10 @@
             mat4LookAt(vMatrix, [eyeX, eyeY, eyeZ], [targetLookAt[0], -targetLookAt[1], targetLookAt[2]], [0, 1, 0]);
             mat4Multiply(mvpMatrix, pMatrix, vMatrix);
 
-            gl.clearColor(0.04, 0.05, 0.08, 1.0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.clearColor(0.05, 0.07, 0.10, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            if (numCleanSplats > 0) {
+            if (numActiveSplats > 0) {
                 gl.useProgram(program);
 
                 gl.uniformMatrix4fv(uMVP, false, mvpMatrix);
@@ -689,7 +624,7 @@
                 gl.enableVertexAttribArray(aScale);
                 gl.vertexAttribPointer(aScale, 1, gl.FLOAT, false, 0, 0);
 
-                gl.drawArrays(gl.POINTS, 0, numCleanSplats);
+                gl.drawArrays(gl.POINTS, 0, numActiveSplats);
             }
         }
 
@@ -711,17 +646,16 @@
             targetLookAt = [...sceneCenter];
             spinAngle = 0.6;
             pitchAngle = -0.25;
-            cameraRadius = 5.8;
-            pointSizeMultiplier = 0.70;
-            document.getElementById('size-slider').value = 0.70;
-            document.getElementById('size-val').innerText = '0.70x';
+            cameraRadius = 5.2;
+            pointSizeMultiplier = 1.4;
+            document.getElementById('size-slider').value = 1.4;
+            document.getElementById('size-val').innerText = '1.4x';
             setAutoSpin(true);
-            sortAndUploadSplats(true);
         };
 
         window.updateSplatScale = function(val) {
             pointSizeMultiplier = parseFloat(val);
-            document.getElementById('size-val').innerText = parseFloat(val).toFixed(2) + 'x';
+            document.getElementById('size-val').innerText = parseFloat(val).toFixed(1) + 'x';
         };
 
         window.setPreset = function(type) {
@@ -731,26 +665,25 @@
             if (type === 'orbit') {
                 targetLookAt = [...sceneCenter];
                 pitchAngle = -0.25;
-                cameraRadius = 5.8;
+                cameraRadius = 5.2;
                 setAutoSpin(true);
             } else if (type === 'facade') {
                 targetLookAt = [...sceneCenter];
                 spinAngle = 0.0;
                 pitchAngle = -0.05;
-                cameraRadius = 4.8;
+                cameraRadius = 4.2;
                 setAutoSpin(false);
             } else if (type === 'top') {
                 targetLookAt = [...sceneCenter];
                 pitchAngle = -1.25;
-                cameraRadius = 6.8;
+                cameraRadius = 6.2;
                 setAutoSpin(false);
             } else if (type === 'close') {
                 targetLookAt = [...sceneCenter];
                 pitchAngle = -0.15;
-                cameraRadius = 2.8;
+                cameraRadius = 2.4;
                 setAutoSpin(false);
             }
-            sortAndUploadSplats(true);
         };
 
         window.addEventListener('DOMContentLoaded', () => {
